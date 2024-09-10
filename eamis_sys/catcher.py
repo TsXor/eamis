@@ -35,5 +35,5 @@ class EamisCatcher(EamisClient):
             for lesson_id in lesson_id_list:
                 time.sleep(humanly_interval)
                 result_text = self.elect_course(lesson_section, lesson_id, semester_id)
-                speed_results.append((lesson_section, lesson_id, result_text))
+                speed_results.append((lesson_section, lesson_id, result_text.raw))
         return speed_results

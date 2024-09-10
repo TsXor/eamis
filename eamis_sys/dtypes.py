@@ -66,3 +66,10 @@ class StdCount(TypedDict):
     puplc: int
     # 这个键可能不存在
     expLessonGroups: NotRequired[dict[str, ExpLessonGroup]]
+
+class ElectResultData(TypedDict):
+    id: int
+    virtualCost: NotRequired[int]
+    preElect: bool 
+    defaultElected: bool
+    elected: bool

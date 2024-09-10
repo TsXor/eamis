@@ -1,11 +1,11 @@
 from . import fix_cert
 
-from typing import cast, Iterable
+from typing import cast, Iterable, Optional
 from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup, Tag
 from nku_sso import BrowserMimic, NKUIAMAuth
 from .call_js import js_eval_data_reload
-from .dtypes import LessonData, StdCount
+from .dtypes import LessonData, StdCount, ElectResultData
 
 try:
     from .webview_auth import login as webview_login
@@ -20,6 +20,30 @@ class EamisJsDataError(Exception):
         super().__init__(*args)
         self.js_code = js_code
 
+
+class ElectResult:
+    raw: str
+    data: Optional[ElectResultData] = None
+    msg: Optional[str] = None
+
+    def __init__(self, text: str):
+        self.raw = text
+        try:
+            soup = BeautifulSoup(self.raw, features="lxml")
+            msg = soup.select_one('body > table > tr > td > div')
+            if msg is not None:
+                self.msg = msg.text.strip()
+            script = soup.select_one('body > table > tr > script')
+            if script is not None:
+                self.data = js_eval_data_reload(
+                    script.text, 'window.electCourseTable',
+                    'window.electCourseTable = {'
+                        'lessons(id) { Object.assign(this, id); return this; },'
+                        'update(elect) { Object.assign(this, elect); return this; }'
+                    '};'
+                    'var jQuery = function(selector) { return { html(text) {} }; };'
+                )
+        except: pass
 
 class EamisClient(BrowserMimic):
     '''
@@ -150,4 +174,4 @@ class EamisClient(BrowserMimic):
             params={'profileId': profile_id},
             cookies={'semester.id': semester_id}
         )
-        return resp.text
+        return ElectResult(resp.text)
