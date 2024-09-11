@@ -1,11 +1,12 @@
 from . import fix_cert
 
-from typing import cast, Iterable, Optional
+from typing import Iterable, Optional
 from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup, Tag
 from nku_sso import BrowserMimic, NKUIAMAuth
 from .call_js import js_eval_data_reload
 from .dtypes import LessonData, StdCount, ElectResultData
+from .utils import with_validate
 
 try:
     from .webview_auth import login as webview_login
@@ -20,30 +21,12 @@ class EamisJsDataError(Exception):
         super().__init__(*args)
         self.js_code = js_code
 
+def load_js(code: str, varname: str, setup: str = ''):
+    try:
+        return js_eval_data_reload(code, varname, setup)
+    except Exception as exc:
+        raise EamisJsDataError(code) from exc
 
-class ElectResult:
-    raw: str
-    data: Optional[ElectResultData] = None
-    msg: Optional[str] = None
-
-    def __init__(self, text: str):
-        self.raw = text
-        try:
-            soup = BeautifulSoup(self.raw, features="lxml")
-            msg = soup.select_one('body > table > tr > td > div')
-            if msg is not None:
-                self.msg = msg.text.strip()
-            script = soup.select_one('body > table > tr > script')
-            if script is not None:
-                self.data = js_eval_data_reload(
-                    script.text, 'window.electCourseTable',
-                    'window.electCourseTable = {'
-                        'lessons(id) { Object.assign(this, id); return this; },'
-                        'update(elect) { Object.assign(this, elect); return this; }'
-                    '};'
-                    'var jQuery = function(selector) { return { html(text) {} }; };'
-                )
-        except: pass
 
 class EamisClient(BrowserMimic):
     '''
@@ -127,26 +110,21 @@ class EamisClient(BrowserMimic):
         url_query = urlparse(qr_script_url).query
         return parse_qs(url_query)['semesterId'][0]
 
-    @staticmethod
-    def load_js(code: str, varname: str):
-        try:
-            return js_eval_data_reload(code, varname)
-        except Exception as exc:
-            raise EamisJsDataError(code) from exc
-
+    @with_validate(dict[str, StdCount])
     def std_count(self, semester_id: str):
         resp = self.document(
             '/eams/stdElectCourse!queryStdCount.action',
             params={'projectId': '1', 'semesterId': semester_id}
         )
-        return cast(dict[str, StdCount], self.load_js(resp.text, 'window.lessonId2Counts'))
+        return load_js(resp.text, 'window.lessonId2Counts')
 
+    @with_validate(list[LessonData])
     def lesson_data(self, profile_id: str):
         resp = self.document(
             '/eams/stdElectCourse!data.action',
             params={'profileId': profile_id}
         )
-        return cast(list[LessonData], self.load_js(resp.text, 'lessonJSONs'))
+        return load_js(resp.text, 'lessonJSONs')
 
     def all_lesson_data(self):
         lesson_data: dict[str, list[LessonData]] = {}
@@ -155,6 +133,31 @@ class EamisClient(BrowserMimic):
             lesson_data[profile_id] = self.lesson_data(profile_id)
         std_count = self.std_count(semester_id)
         return lesson_data, std_count
+
+    class ElectResult:
+        raw: str
+        data: Optional[ElectResultData] = None
+        msg: Optional[str] = None
+
+        def __init__(self, text: str):
+            self.raw = text
+            try:
+                soup = BeautifulSoup(self.raw, features="lxml")
+                msg = soup.select_one('body > table > tr > td > div')
+                if msg is not None:
+                    self.msg = msg.text.strip()
+                script = soup.select_one('body > table > tr > script')
+                if script is not None:
+                    data = load_js(
+                        script.text, 'window.electCourseTable',
+                        'window.electCourseTable = {'
+                            'lessons(id) { Object.assign(this, id); return this; },'
+                            'update(elect) { Object.assign(this, elect); return this; }'
+                        '};'
+                        'var jQuery = function(selector) { return { html(text) {} }; };'
+                    )
+                    self.data = ElectResultData.model_validate(data)
+            except: pass
 
     def elect_course(self, profile_id: str, course_id: int, semester_id: str):
         fetch_headers = {
@@ -174,4 +177,4 @@ class EamisClient(BrowserMimic):
             params={'profileId': profile_id},
             cookies={'semester.id': semester_id}
         )
-        return ElectResult(resp.text)
+        return self.ElectResult(resp.text)

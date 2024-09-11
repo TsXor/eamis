@@ -5,3 +5,4 @@ beautifulsoup4
 javascript
 nku_sso
 typing_extensions
+pydantic

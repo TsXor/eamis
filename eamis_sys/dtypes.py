@@ -1,11 +1,12 @@
 from typing import TypedDict, Optional
 from typing_extensions import NotRequired
+from pydantic import BaseModel
 
 '''
 没人问我，但你根本想不到写好Type Hint之后IDE提示多方便
 '''
 
-class LessonArrangeInfo(TypedDict):
+class LessonArrangeInfo(BaseModel):
     weekDay: int
     weekState: str
     startUnit: int
@@ -19,7 +20,7 @@ class LessonArrangeInfo(TypedDict):
     roomIds: str
     rooms: str
 
-class LessonData(TypedDict):
+class LessonData(BaseModel):
     id: int
     no: str
     name: str
@@ -51,13 +52,13 @@ class LessonData(TypedDict):
     arrangeInfo: list[LessonArrangeInfo]
     expLessonGroups: list[str]
 
-class ExpLessonGroup(TypedDict):
+class ExpLessonGroup(BaseModel):
     indexNo: int
     stdCount: int
     stdCountLimit: int
     proStdCountLimit: int
 
-class StdCount(TypedDict):
+class StdCount(BaseModel):
     sc: int
     lc: int
     upsc: int
@@ -65,11 +66,11 @@ class StdCount(TypedDict):
     plc: int
     puplc: int
     # 这个键可能不存在
-    expLessonGroups: NotRequired[dict[str, ExpLessonGroup]]
+    expLessonGroups: Optional[dict[str, ExpLessonGroup]] = None
 
-class ElectResultData(TypedDict):
+class ElectResultData(BaseModel):
     id: int
-    virtualCost: NotRequired[int]
+    virtualCost: Optional[int] = None
     preElect: bool 
     defaultElected: bool
     elected: bool
