@@ -26,14 +26,11 @@ class EamisCatcher(EamisClient):
             lesson_num_map = self.lesson_list_to_num_map(lesson_data)
             prepared_map[profile_id] = (semester_id, [lesson_num_map[lesson_num].id for lesson_num in lesson_num_list])
             info_map[profile_id] = lesson_data
-            time.sleep(0.5) # 防止触发“不要过快点击”
         return prepared_map, info_map
 
-    def speed_catch(self, prepared_map: dict[str, tuple[str, list[int]]], humanly_interval=0.5):
-        speed_results: list[tuple[str, int, str]] = []
+    def speed_catch(self, prepared_map: dict[str, tuple[str, list[int]]], humanly_interval: float = 0.5):
         for lesson_section, (semester_id, lesson_id_list) in prepared_map.items():
             for lesson_id in lesson_id_list:
                 time.sleep(humanly_interval)
-                result_text = self.elect_course(lesson_section, lesson_id, semester_id)
-                speed_results.append((lesson_section, lesson_id, result_text.raw))
-        return speed_results
+                result = self.elect_course(lesson_section, lesson_id, semester_id)
+                yield (lesson_section, lesson_id, result)

@@ -6,21 +6,27 @@ from pydantic import BaseModel
 没人问我，但你根本想不到写好Type Hint之后IDE提示多方便
 '''
 
-class LessonArrangeInfo(BaseModel):
-    weekDay: int
-    weekState: str
-    startUnit: int
-    endUnit: int
-    weekStateDigest: str
-    startTime: int
-    endTime: int
-    # 这两个键总是存在，只是可能为null
-    expLessonGroup: Optional[str]
-    expLessonGroupNo: Optional[int]
-    roomIds: str
-    rooms: str
-
 class LessonData(BaseModel):
+    class ExpLessonGroup(BaseModel):
+        id: int
+        indexNo: int
+        stdCount: int
+        getStdCountLimit: int
+
+    class LessonArrangeInfo(BaseModel):
+        weekDay: int
+        weekState: str
+        startUnit: int
+        endUnit: int
+        weekStateDigest: str
+        startTime: int
+        endTime: int
+        # 这两个键总是存在，只是可能为null
+        expLessonGroup: Optional[int]
+        expLessonGroupNo: Optional[int]
+        roomIds: str
+        rooms: str
+
     id: int
     no: str
     name: str
@@ -28,7 +34,7 @@ class LessonData(BaseModel):
     planLimitCount: int
     unplanLimitCount: int
     code: str
-    credits: int
+    credits: int | float
     courseId: int
     startWeek: int
     endWeek: int
@@ -50,15 +56,17 @@ class LessonData(BaseModel):
     reservedCount: str
     remark: str
     arrangeInfo: list[LessonArrangeInfo]
-    expLessonGroups: list[str]
+    expLessonGroups: list[ExpLessonGroup]
 
-class ExpLessonGroup(BaseModel):
-    indexNo: int
-    stdCount: int
-    stdCountLimit: int
-    proStdCountLimit: int
+
 
 class StdCount(BaseModel):
+    class ExpLessonGroup(BaseModel):
+        indexNo: int
+        stdCount: int
+        stdCountLimit: int
+        proStdCountLimit: int
+
     sc: int
     lc: int
     upsc: int

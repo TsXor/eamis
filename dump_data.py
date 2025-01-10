@@ -1,13 +1,13 @@
-import json
 from pathlib import Path
+from pydantic import TypeAdapter
 from eamis_sys import EamisCatcher
+from eamis_sys.api import FullData as EamisFullData
 
 HERE = Path(__file__).parent
+EamisFullDataValidator = TypeAdapter(EamisFullData)
 
-client = EamisCatcher.from_webview()
-lesson_data, std_count = client.all_lesson_data()
+client = EamisCatcher.from_account(input('username:'), input('password:'))
+snapshot = client.full_data()
 
-with open(HERE / 'lesson_data.json', 'wt', encoding='utf-8') as log_wfp:
-    json.dump(lesson_data, log_wfp, ensure_ascii=False, indent=4)
-with open(HERE / 'std_count.json', 'wt', encoding='utf-8') as log_wfp:
-    json.dump(std_count, log_wfp, ensure_ascii=False, indent=4)
+(HERE / 'eamis_snapshot.json') \
+    .write_bytes(EamisFullDataValidator.dump_json(snapshot, indent=4))

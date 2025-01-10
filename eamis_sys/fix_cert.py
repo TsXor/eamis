@@ -13,8 +13,7 @@ if REQUESTS_CERTS_PATCHED:
         importlib.reload(sys.modules['requests'])
 else:
     import requests
-    falsy = property(lambda self: False)
-    falsy = falsy.setter(lambda self, val: None)
+    falsy = property(lambda self: False, lambda self, val: None)
     requests.Session.verify = falsy # type: ignore
     suppress_insecure = supress_warning(InsecureRequestWarning)
     requests.Session.request = suppress_insecure(requests.Session.request)
